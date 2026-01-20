@@ -1,10 +1,13 @@
 package org.src.model;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.NotEmpty;
+import org.src.validation.OnCreate;
+import org.src.validation.OnUpdate;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -15,22 +18,30 @@ import java.util.Objects;
  * associated reviews.
  */
 public final class App {
+
+  @NotNull(message = "ID is required for update and delete",
+      groups = OnUpdate.class)
   private int id;
 
-  @NotBlank(message = "App name is required")
+  @NotBlank(message = "App name is required",
+      groups = {OnCreate.class, OnUpdate.class})
   private String name;
 
-  @NotNull(message = "Author information is required")
+  @NotNull(message = "Author information is required",
+      groups = OnCreate.class)
   private User author;
 
-  @NotBlank(message = "Description cannot be empty")
+  @NotBlank(message = "Description cannot be empty",
+      groups = {OnCreate.class, OnUpdate.class})
   @Size(max = 200, message = "Description must not exceed 200 characters")
   private String description;
 
-  @Positive(message = "Version must be a positive number")
+  @Positive(message = "Version must be a positive number",
+      groups = {OnCreate.class, OnUpdate.class})
   private double version;
 
-  @NotEmpty(message = "Features list cannot be empty.")
+  @NotEmpty(message = "Features list cannot be empty.",
+      groups = {OnCreate.class, OnUpdate.class})
   private List<String> features;
 
   private double rating = 0;
@@ -40,7 +51,8 @@ public final class App {
   /**
    * Default constructor required by Jackson for JSON deserialization.
    */
-  public App() { }
+  public App() {
+  }
 
   /**
    * Constructs a new App with specific details.
@@ -103,7 +115,7 @@ public final class App {
    * @return the username of the author
    */
   public String getAuthorName() {
-    return author.getUsername();
+    return (author != null) ? author.getUsername() : "Unknown";
   }
 
   public String getDescription() {
@@ -126,7 +138,7 @@ public final class App {
     return features;
   }
 
-  public void setFeatures(List<String> features) {
+  public void setFeatures(final List<String> features) {
     this.features = features;
   }
 
@@ -156,24 +168,8 @@ public final class App {
 
   @Override
   public String toString() {
-    final String authorName = (author != null) ? author.getUsername() : "Unknown";
-    return "App{"
-        + "id="
-        + id
-        + ", name='"
-        + name
-        + '\''
-        + ", authorName='"
-        + authorName
-        + '\''
-        + ", description='"
-        + description
-        + '\''
-        + ", version="
-        + version
-        + ", rating="
-        + rating
-        + '}';
+    return String.format("App{id=%d, name='%s', authorName='%s', description='%s', version=%.2f, rating=%.1f}",
+        id, name, getAuthorName(), description, version, rating);
   }
 
   @Override
@@ -187,7 +183,7 @@ public final class App {
 
     final App app = (App) object;
 
-    return id == app.id;
+    return Objects.equals(id, app.id);
   }
 
   @Override

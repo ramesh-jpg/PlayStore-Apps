@@ -6,7 +6,7 @@ package org.src.exception;
  * <p>For example, if a "USER" role attempts to perform an action restricted to "AUTHOR", this
  * exception will be triggered. It typically results in an HTTP 403 Forbidden status.
  */
-public class InvalidRoleException extends RuntimeException {
+public final class InvalidRoleException extends RuntimeException {
 
   /**
    * Constructs a new InvalidRoleException with a specific error message.

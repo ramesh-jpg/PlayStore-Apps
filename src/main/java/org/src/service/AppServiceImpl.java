@@ -20,7 +20,7 @@ import java.util.Objects;
  */
 @Service
 public class AppServiceImpl implements AppService {
-  private static final Logger logger = LoggerFactory.getLogger(AppServiceImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AppServiceImpl.class);
 
   private final AppRepository appRepository;
   private final InstallationRepository installationRepository;
@@ -36,7 +36,7 @@ public class AppServiceImpl implements AppService {
   }
 
   /**
-   * Creates a new application after validating author permissions.
+   * {@inheritDoc}
    */
   @Override
   public void createApp(final App app) {
@@ -47,11 +47,12 @@ public class AppServiceImpl implements AppService {
     }
 
     appRepository.save(app);
-    logger.info("New app '{}' created successfully.", app.getName());
+
+    LOGGER.info("New app '{}' created successfully.", app.getName());
   }
 
   /**
-   * Updates an existing application's details.
+   * {@inheritDoc}
    */
   @Override
   public void updateApp(final App app) {
@@ -68,11 +69,12 @@ public class AppServiceImpl implements AppService {
     existingApp.setVersion(app.getVersion());
 
     appRepository.update(existingApp);
-    logger.info("App ID {} updated successfully.", app.getId());
+
+    LOGGER.info("App ID {} updated successfully.", app.getId());
   }
 
   /**
-   * Deletes an application from the store.
+   * {@inheritDoc}
    */
   @Override
   public void deleteApp(final int appId, final int authorId) {
@@ -84,11 +86,12 @@ public class AppServiceImpl implements AppService {
     }
 
     appRepository.delete(appId);
-    logger.info("App ID {} deleted by Author ID {}.", appId, authorId);
+
+    LOGGER.info("App ID {} deleted by Author ID {}.", appId, authorId);
   }
 
   /**
-   * Lists all available applications in the repository.
+   * {@inheritDoc}
    */
   @Override
   public Collection<App> listApps() {
@@ -96,7 +99,7 @@ public class AppServiceImpl implements AppService {
   }
 
   /**
-   * Installs an application for a user.
+   * {@inheritDoc}
    */
   @Override
   public void installApp(final int userId, final int appId) {
@@ -108,11 +111,12 @@ public class AppServiceImpl implements AppService {
     }
 
     installationRepository.installed(userId, appId);
-    logger.info("App ID {} installed for User ID {}.", appId, userId);
+
+    LOGGER.info("App ID {} installed for User ID {}.", appId, userId);
   }
 
   /**
-   * Uninstalls an application.
+   * {@inheritDoc}
    */
   @Override
   public void uninstallApp(final int userId, final int appId) {
@@ -123,28 +127,31 @@ public class AppServiceImpl implements AppService {
       throw new RuntimeException("App is not installed in this account.");
     }
 
-    final boolean success = installationRepository.uninstalled(userId, appId);
+    final boolean success = installationRepository
+        .uninstalled(userId, appId);
     if (!success) {
       throw new RuntimeException("Uninstall Failed due to server error.");
     }
 
-    logger.info("App ID {} uninstalled for User ID {}.", appId, userId);
+    LOGGER.info("App ID {} uninstalled for User ID {}.", appId, userId);
   }
 
   /**
-   * Submits a user review for an application.
+   * {@inheritDoc}
    */
   @Override
   public void writeReview(final Review review) {
-    appRepository
-        .findById(review.getAppId())
+    appRepository.findById(review.getAppId())
         .orElseThrow(() -> new RuntimeException("App not found with ID: " + review.getAppId()));
 
-    if (review.getRating() < Review.MIN_RATING || review.getRating() > Review.MAX_RATING) {
+    if (review.getRating() < Review.MIN_RATING ||
+        review.getRating() > Review.MAX_RATING) {
       throw new RuntimeException("Rating must be between 1 and 5.");
     }
 
     appRepository.addReview(review);
-    logger.info("Review added for App ID {} by User ID {}.", review.getAppId(), review.getUserId());
+
+    LOGGER.info("Review added for App ID {} by User ID {}.",
+        review.getAppId(), review.getUserId());
   }
 }

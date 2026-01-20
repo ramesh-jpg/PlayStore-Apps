@@ -1,10 +1,15 @@
 package org.src.controller;
 
+import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.src.model.App;
 import org.src.service.AppStaticsService;
 
@@ -20,7 +25,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/statics")
 public final class StaticsController {
-  private static final Logger logger = LoggerFactory.getLogger(StaticsController.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StaticsController.class);
+
+  private static final String AUTHOR = "author";
+  private static final String TOTAL_INSTALLS = "totalInstalls";
 
   private final AppStaticsService staticsService;
 
@@ -39,7 +47,7 @@ public final class StaticsController {
    */
   @GetMapping("/installed/{userId}")
   public ResponseEntity<Collection<App>> showInstalledApps(@PathVariable final int userId) {
-    logger.info("Request received: Fetch installed apps for User ID: {}", userId);
+    LOGGER.info("Request received: Fetch installed apps for User ID: {}", userId);
 
     final Collection<App> apps = staticsService.showInstalledApps(userId);
 
@@ -47,7 +55,7 @@ public final class StaticsController {
       return ResponseEntity.noContent().build();
     }
 
-    logger.info("Successfully {} installed apps for User ID: {}", apps.size(), userId);
+    LOGGER.info("Successfully {} installed apps for User ID: {}", apps.size(), userId);
 
     return ResponseEntity.ok(apps);
   }
@@ -59,15 +67,18 @@ public final class StaticsController {
    */
   @GetMapping("/author")
   public ResponseEntity<Map<String, Object>> countInstallsByAuthor(
-      @RequestParam final String authorName) {
-    logger.info("Request received: Count total installs for Author: '{}'", authorName);
+      @RequestParam
+      @NotBlank(message = "Author name is required")
+      final String authorName) {
+    LOGGER.info("Request received: Count total installs for Author: '{}'", authorName);
 
     final int count = staticsService.countInstallsByAuthor(authorName);
-    final Map<String, Object> response = new HashMap<>();
-    response.put("author", authorName);
-    response.put("totalInstalls", count);
 
-    logger.info("Total installs calculated for Author '{}': {}", authorName, count);
+    final Map<String, Object> response = new HashMap<>();
+    response.put(AUTHOR, authorName);
+    response.put(TOTAL_INSTALLS, count);
+
+    LOGGER.info("Total installs calculated for Author '{}': {}", authorName, count);
 
     return ResponseEntity.ok(response);
   }

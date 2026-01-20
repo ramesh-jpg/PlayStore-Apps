@@ -1,10 +1,14 @@
 package org.src.model;
 
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Size;
+import org.src.validation.OnCreate;
+import org.src.validation.OnUpdate;
+
 import java.util.Objects;
 
 /**
@@ -16,28 +20,39 @@ public final class Review {
   public static final int MIN_RATING = 1;
   public static final int MAX_RATING = 5;
 
+  @NotNull(message = "Review reference ID is required",
+      groups = OnUpdate.class)
   private int id;
 
-  @Positive(message = "User ID must be valid")
+  @Positive(message = "User ID must be valid",
+      groups = OnUpdate.class)
   private int userId;
 
+  @NotBlank(message = "Username cannot be blank",
+      groups = {OnCreate.class, OnUpdate.class})
   private String userName;
 
-  @Positive(message = "App ID must be valid")
+  @Positive(message = "App ID must be valid",
+      groups = {OnCreate.class, OnUpdate.class})
   private int appId;
 
-  @DecimalMin(value = "1.0", message = "Rating must be at least 1.0")
-  @DecimalMax(value = "5.0", message = "Rating cannot exceed 5.0")
+  @DecimalMin(value = "1.0", message = "Rating must be at least 1.0",
+      groups = {OnCreate.class, OnUpdate.class})
+  @DecimalMax(value = "5.0", message = "Rating cannot exceed 5.0",
+      groups = {OnCreate.class, OnUpdate.class})
   private double rating;
 
-  @NotBlank(message = "Review comment cannot be empty")
-  @Size(max = 200, message = "Comment must not exceed 200 characters")
+  @NotBlank(message = "Review comment cannot be empty",
+      groups = {OnCreate.class, OnUpdate.class})
+  @Size(max = 200, message = "Comment must not exceed 200 characters",
+      groups = {OnCreate.class, OnUpdate.class})
   private String comment;
 
   /**
    * Default constructor required for JSON deserialization.
    */
-  public Review() { }
+  public Review() {
+  }
 
   /**
    * Constructs a new Review instance with all details.
@@ -114,7 +129,8 @@ public final class Review {
 
   @Override
   public String toString() {
-    return userName + ": " + rating + "* - " + comment;
+    return String.format("Review{id=%d, appId=%d, userName='%s', rating=%.1f, comment='%s'}",
+        id, appId, userName, rating, comment);
   }
 
   @Override
@@ -128,7 +144,7 @@ public final class Review {
 
     final Review review = (Review) object;
 
-    return id == review.id;
+    return Objects.equals(id, review.id);
   }
 
   @Override

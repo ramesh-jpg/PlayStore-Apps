@@ -3,15 +3,19 @@ package org.src.repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Repository;
-import org.src.model.App;
-import org.src.model.User;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import org.src.model.App;
+import org.src.model.User;
+
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -22,9 +26,13 @@ import java.util.Collection;
  */
 @Repository
 public class InstallationRepositoryImpl implements InstallationRepository {
-  private static final Logger logger = LoggerFactory.getLogger(InstallationRepositoryImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InstallationRepositoryImpl.class);
+
+  private static final int USER_ID = 1;
+  private static final int APP_ID = 2;
 
   private final DataSource appDataSource;
+
 
   @Autowired
   public InstallationRepositoryImpl(final DataSource appDataSource) {
@@ -32,135 +40,122 @@ public class InstallationRepositoryImpl implements InstallationRepository {
   }
 
   /**
-   * Records a new installation and increments the app's install count.
-   *
-   * @param userId the ID of the user installing the app
-   * @param appId  the ID of the app being installed
-   * @return {@code true} if successful, {@code false} otherwise
+   * {@inheritDoc}
    */
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean installed(final int userId, final int appId) {
     final String insertQuery = "INSERT INTO installation (user_id, app_id) VALUES (?, ?)";
     final String updateQuery = "UPDATE app SET installed_count = installed_count + 1 WHERE id = ?";
 
-    try (final Connection connection = appDataSource.getConnection()) {
-      connection.setAutoCommit(false);
+    final Connection connection = DataSourceUtils.getConnection(appDataSource);
+    try {
       try (final PreparedStatement insertStatement = connection.prepareStatement(insertQuery);
            final PreparedStatement updateStatement = connection.prepareStatement(updateQuery)) {
         // Add to installation table
-        insertStatement.setInt(1, userId);
-        insertStatement.setInt(2, appId);
+        insertStatement.setInt(USER_ID, userId);
+        insertStatement.setInt(APP_ID, appId);
         insertStatement.executeUpdate();
-        // Increment count in app table
-        updateStatement.setInt(1, appId);
+
+        updateStatement.setInt(APP_ID, appId);
         updateStatement.executeUpdate();
 
-        connection.commit();
-        logger.info("Successfully installed App ID {}", appId);
+        LOGGER.info("Successfully installed App ID {}", appId);
 
         return true;
       } catch (final SQLException exception) {
-        connection.rollback();
-        logger.error(
+        LOGGER.error(
             "Installation failed for User {} App {}: {}", userId, appId, exception.getMessage());
-        return false;
+
+        throw new RuntimeException("Database error during installation", exception);
       }
-    } catch (final SQLException exception) {
-      logger.error("DataBase Connection error during installation: {}", exception.getMessage());
-      return false;
+    } finally {
+      DataSourceUtils.releaseConnection(connection, appDataSource);
     }
   }
 
   /**
-   * Removes an installation record and decrements the app's install count.
-   *
-   * @param userId the ID of the user uninstalling the app
-   * @param appId  the ID of the app being uninstalled
-   * @return {@code true} if uninstallation was successful, {@code false} otherwise
+   * {@inheritDoc}
    */
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean uninstalled(final int userId, final int appId) {
     final String deleteQuery = "DELETE FROM installation WHERE user_id = ? AND app_id = ?";
     final String updateQuery = "UPDATE app SET installed_count = installed_count - 1 WHERE id = ?";
 
-    try (final Connection connection = appDataSource.getConnection()) {
-      connection.setAutoCommit(false);
+    final Connection connection = DataSourceUtils.getConnection(appDataSource);
+    try {
       try (final PreparedStatement deleteStatement = connection.prepareStatement(deleteQuery);
            final PreparedStatement updateStatement = connection.prepareStatement(updateQuery)) {
-        deleteStatement.setInt(1, userId);
-        deleteStatement.setInt(2, appId);
+        deleteStatement.setInt(USER_ID, userId);
+        deleteStatement.setInt(APP_ID, appId);
+
         final int rowsDeleted = deleteStatement.executeUpdate();
 
         if (rowsDeleted > 0) {
-          updateStatement.setInt(1, appId);
+          updateStatement.setInt(APP_ID, appId);
           updateStatement.executeUpdate();
-          connection.commit();
-          logger.info("Successfully uninstalled By App ID {}", appId);
+
+          LOGGER.info("Successfully uninstalled By App ID {}", appId);
 
           return true;
-        } else {
-          connection.rollback();
-          return false;
         }
 
-      } catch (final SQLException exception) {
-        connection.rollback();
-        logger.error("Uninstall error for App {}: {}", appId, exception.getMessage());
         return false;
+      } catch (final SQLException exception) {
+        LOGGER.error("Uninstall error for App {}: {}", appId, exception.getMessage());
+
+        throw new RuntimeException("Database error during uninstallation", exception);
       }
-    } catch (final SQLException exception) {
-      logger.error("DataBase Connection error during uninstall: {}", exception.getMessage());
-      return false;
+    } finally {
+      DataSourceUtils.releaseConnection(connection, appDataSource);
     }
   }
 
   /**
-   * Checks if a user has installed a specific app.
-   *
-   * @param userId the ID of the user
-   * @param appId  the ID of the app
-   * @return {@code true} if a record exists, {@code false} otherwise
+   * {@inheritDoc}
    */
   @Override
+  @Transactional(readOnly = true)
   public boolean isInstalled(final int userId, final int appId) {
     final String installedQuery = "SELECT id FROM installation WHERE user_id = ? AND app_id = ?";
 
-    try (final Connection connection = appDataSource.getConnection();
-         final PreparedStatement statement = connection.prepareStatement(installedQuery)) {
-      statement.setInt(1, userId);
-      statement.setInt(2, appId);
+    final Connection connection = DataSourceUtils.getConnection(appDataSource);
+    try (final PreparedStatement statement = connection.prepareStatement(installedQuery)) {
+      statement.setInt(USER_ID, userId);
+      statement.setInt(APP_ID, appId);
 
       try (final ResultSet resultSet = statement.executeQuery()) {
         return resultSet.next();
       }
-    } catch (final SQLException exception) {
-      logger.error("Error checking installation status for : {}", exception.getMessage());
-    }
 
-    return false;
+    } catch (final SQLException exception) {
+      LOGGER.error("Error checking installation status: {}", exception.getMessage());
+
+      throw new RuntimeException("Installation status failed", exception);
+    } finally {
+      DataSourceUtils.releaseConnection(connection, appDataSource);
+    }
   }
 
   /**
-   * Retrieves all apps installed by a specific user.
-   *
-   * <p>This method joins the 'app', 'installation', and 'users' (author) tables to construct full
-   * App objects.
-   *
-   * @param userId the ID of the user
-   * @return a collection of installed {@link App} objects
+   * {@inheritDoc}
    */
   @Override
+  @Transactional(readOnly = true)
   public Collection<App> getInstalledApps(final int userId) {
     final Collection<App> installedApps = new ArrayList<>();
     String installQuery =
-        "SELECT a.*, u.username, u.role FROM app a "
+        "SELECT a.id, a.name, a.description, a.version, a.rating, "
+            + "a.installed_count, a.author_id, u.username, u.role "
+            + "FROM app a "
             + "JOIN installation i ON a.id = i.app_id "
             + "JOIN users u ON a.author_id = u.id "
             + "WHERE i.user_id = ?";
 
-    try (final Connection connection = appDataSource.getConnection();
-         final PreparedStatement statement = connection.prepareStatement(installQuery)) {
-      statement.setInt(1, userId);
+    final Connection connection = DataSourceUtils.getConnection(appDataSource);
+    try (final PreparedStatement statement = connection.prepareStatement(installQuery)) {
+      statement.setInt(USER_ID, userId);
 
       try (final ResultSet resultSet = statement.executeQuery()) {
         while (resultSet.next()) {
@@ -187,10 +182,14 @@ public class InstallationRepositoryImpl implements InstallationRepository {
           installedApps.add(app);
         }
       }
+      LOGGER.info("Fetched {} installed apps for user ID {}", installedApps.size(), userId);
 
-      logger.info("Fetched {} installed apps for user ID {}", installedApps.size(), userId);
     } catch (final SQLException exception) {
-      logger.error("Error fetching installed apps for : {}", exception.getMessage());
+      LOGGER.error("Error fetching installed apps for : {}", exception.getMessage());
+
+      throw new RuntimeException("Installed fetch failed", exception);
+    } finally {
+      DataSourceUtils.releaseConnection(connection, appDataSource);
     }
 
     return installedApps;

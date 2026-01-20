@@ -1,9 +1,13 @@
 package org.src.model;
 
-import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Positive;
+import org.src.validation.OnCreate;
+import org.src.validation.OnUpdate;
+
 import java.util.Objects;
 
 /**
@@ -13,29 +17,38 @@ import java.util.Objects;
  * USER or AUTHOR).
  */
 public final class User {
+
+  @NotNull(message = "User id is required for update or delete", groups = OnUpdate.class)
   private int id;
 
-  @NotBlank(message = "Username is required")
+  @NotBlank(message = "Username is required",
+      groups = {OnCreate.class, OnUpdate.class})
   private String username;
 
-  @NotBlank(message = "Password is required")
-  @Size(min = 6, message = "Password must be at least 6 characters long")
+  @NotBlank(message = "Password is required", groups = OnCreate.class)
+  @Size(min = 6, message = "Password must be at least 6 characters long",
+      groups = {OnCreate.class, OnUpdate.class})
   private String password;
 
-  @NotBlank(message = "Email is required")
-  @Email(message = "Please provide a valid email address")
+  @NotBlank(message = "Email is required",
+      groups = {OnCreate.class, OnUpdate.class})
+  @Email(message = "Please provide a valid email address",
+      groups = {OnCreate.class, OnUpdate.class})
   private String email;
 
-  @Positive(message = "Phone number must be positive")
+  @Positive(message = "Phone number must be positive",
+      groups = OnCreate.class)
   private long phone;
 
-  @NotBlank(message = "Role is required")
+  @NotBlank(message = "Role is required",
+      groups = {OnCreate.class, OnUpdate.class})
   private String role;
 
   /**
    * Default constructor required for JSON deserialization.
    */
-  public User() { }
+  public User() {
+  }
 
   /**
    * Constructs a new User with full details.
@@ -122,7 +135,7 @@ public final class User {
 
   @Override
   public String toString() {
-    return "User{id=" + id + ", username='" + username + "', role='" + role + "'}";
+    return String.format("User{id=%d, username='%s', role='%s'}", id, username, role);
   }
 
   @Override
@@ -136,7 +149,7 @@ public final class User {
 
     final User user = (User) object;
 
-    return id == user.id;
+    return Objects.equals(id, user.id);
   }
 
   @Override

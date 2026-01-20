@@ -18,8 +18,13 @@ import java.util.Map;
  * type.
  */
 @RestControllerAdvice
-public class GlobalExceptionHandler {
-  private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+public final class GlobalExceptionHandler {
+  private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+  private static final String TIMESTAMP = "timestamp";
+  private static final String STATUS = "status";
+  private static final String ERROR = "error";
+  private static final String MESSAGE = "message";
 
   /**
    * Handles cases where a user has an incorrect role for an operation.
@@ -27,9 +32,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(InvalidRoleException.class)
   public ResponseEntity<Map<String, Object>> handleInvalidRole(
       final InvalidRoleException roleException) {
-    logger.warn("Invalid Role Access : {}", roleException.getMessage());
+    LOGGER.warn("Invalid Role Access : {}", roleException.getMessage());
 
-    return buildResponse(HttpStatus.FORBIDDEN, roleException.getMessage());
+    return buildResponse(HttpStatus.FORBIDDEN,
+        roleException.getMessage());
   }
 
   /**
@@ -38,9 +44,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnauthorizedException.class)
   public ResponseEntity<Map<String, Object>> handleUnauthorized(
       final UnauthorizedException unauthorizedException) {
-    logger.warn("Unauthorized Access : {}", unauthorizedException.getMessage());
+    LOGGER.warn("Unauthorized Access : {}", unauthorizedException.getMessage());
 
-    return buildResponse(HttpStatus.UNAUTHORIZED, unauthorizedException.getMessage());
+    return buildResponse(HttpStatus.UNAUTHORIZED,
+        unauthorizedException.getMessage());
   }
 
   /**
@@ -53,11 +60,14 @@ public class GlobalExceptionHandler {
   private ResponseEntity<Map<String, Object>> buildResponse(
       final HttpStatus status, final String message) {
     final Map<String, Object> response = new HashMap<>();
-    response.put("timestamp", LocalDateTime.now());
-    response.put("status", status.value());
-    response.put("error", status.getReasonPhrase());
-    response.put("message", message);
 
-    return ResponseEntity.status(status).body(response);
+    response.put(TIMESTAMP, LocalDateTime.now());
+    response.put(STATUS, status.value());
+    response.put(ERROR, status.getReasonPhrase());
+    response.put(MESSAGE, message);
+
+    return ResponseEntity
+        .status(status)
+        .body(response);
   }
 }

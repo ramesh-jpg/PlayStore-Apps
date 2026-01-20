@@ -1,17 +1,18 @@
 package org.src.controller;
 
-import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.src.model.User;
 import org.src.service.UserService;
+import org.src.validation.OnCreate;
 
 /**
  * REST Controller for managing user accounts and authentication.
@@ -21,7 +22,7 @@ import org.src.service.UserService;
 @RestController
 @RequestMapping("/api/users")
 public final class UserController {
-  private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UserController.class);
 
   private final UserService userService;
 
@@ -39,13 +40,17 @@ public final class UserController {
    * @param user the user details for registration.
    */
   @PostMapping("/signup")
-  public ResponseEntity<String> signUp(@Valid @RequestBody final User user) {
-    logger.info("Signup request received for Username: {}", user.getUsername());
+  public ResponseEntity<String> signUp(@Validated(OnCreate.class)
+                                         @RequestBody final User user) {
+    LOGGER.info("Signup request received for Username: {}", user.getUsername());
 
     userService.signUp(user);
-    logger.info("User '{}' registered successfully.", user.getUsername());
 
-    return ResponseEntity.status(HttpStatus.CREATED).body("Signup Successful!");
+    LOGGER.info("User '{}' registered successfully.", user.getUsername());
+
+    return ResponseEntity
+        .status(HttpStatus.CREATED)
+        .body("Signup Successful!");
   }
 
   /**
@@ -54,11 +59,14 @@ public final class UserController {
    * @param loginDetails user object containing username and password.
    */
   @PostMapping("/login")
-  public ResponseEntity<User> signIn(@Valid @RequestBody final User loginDetails) {
-    logger.info("Login for Username: {}", loginDetails.getUsername());
+  public ResponseEntity<User> signIn(@RequestBody final User loginDetails) {
+    LOGGER.info("Login for Username: {}", loginDetails.getUsername());
 
-    final User user = userService.signIn(loginDetails.getUsername(), loginDetails.getPassword());
-    logger.info("Login successful for User: {}", user.getUsername());
+    final User user = userService.signIn(
+        loginDetails.getUsername(),
+        loginDetails.getPassword());
+
+    LOGGER.info("Login successful for User: {}", user.getUsername());
 
     return ResponseEntity.ok(user);
   }
