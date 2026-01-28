@@ -8,6 +8,7 @@ import org.src.exception.InvalidRoleException;
 import org.src.model.App;
 import org.src.model.Review;
 import org.src.repository.AppRepository;
+import org.src.repository.AppSearchRepository;
 import org.src.repository.InstallationRepository;
 
 import java.util.Collection;
@@ -24,15 +25,19 @@ public class AppServiceImpl implements AppService {
 
   private final AppRepository appRepository;
   private final InstallationRepository installationRepository;
+  private final AppSearchRepository appSearchRepository;
 
   /**
    * Constructs AppServiceImpl with necessary repository dependencies.
    */
   @Autowired
   public AppServiceImpl(
-      final AppRepository appRepository, final InstallationRepository installationRepository) {
+      final AppRepository appRepository,
+      final InstallationRepository installationRepository,
+      final AppSearchRepository appSearchRepository) {
     this.appRepository = appRepository;
     this.installationRepository = installationRepository;
+    this.appSearchRepository = appSearchRepository;
   }
 
   /**
@@ -48,6 +53,14 @@ public class AppServiceImpl implements AppService {
 
     appRepository.save(app);
 
+    try {
+      appSearchRepository.indexApp(app);
+
+      LOGGER.info("App indexed in OpenSearch: {}", app.getName());
+    } catch (final Exception exception) {
+      LOGGER.error("Failed to index app '{}' in OpenSearch: {}",
+          app.getName(), exception.getMessage());
+    }
     LOGGER.info("New app '{}' created successfully.", app.getName());
   }
 
@@ -70,6 +83,15 @@ public class AppServiceImpl implements AppService {
 
     appRepository.update(existingApp);
 
+    try {
+      appSearchRepository.indexApp(existingApp);
+
+      LOGGER.info("OpenSearch index updated for App ID: {}", app.getId());
+    } catch (final Exception exception) {
+      LOGGER.error("Failed to update OpenSearch index for App ID {}: {}",
+          app.getId(), exception.getMessage());
+    }
+
     LOGGER.info("App ID {} updated successfully.", app.getId());
   }
 
@@ -86,6 +108,15 @@ public class AppServiceImpl implements AppService {
     }
 
     appRepository.delete(appId);
+
+    try {
+      appSearchRepository.deleteIndex(appId);
+
+      LOGGER.info("App ID {} deleted from OpenSearch index.", appId);
+    } catch (final Exception exception) {
+      LOGGER.error("Failed to delete App ID {} from OpenSearch: {}",
+          appId, exception.getMessage());
+    }
 
     LOGGER.info("App ID {} deleted by Author ID {}.", appId, authorId);
   }
@@ -111,6 +142,14 @@ public class AppServiceImpl implements AppService {
     }
 
     installationRepository.installed(userId, appId);
+    try {
+      appRepository.findById(appId)
+          .ifPresent(appSearchRepository::indexApp);
+
+      LOGGER.info("App ID {} installation to OpenSearch.", appId);
+    } catch (final Exception exception) {
+      LOGGER.error("AppID {} installation failed to OpenSearch", exception.getMessage());
+    }
 
     LOGGER.info("App ID {} installed for User ID {}.", appId, userId);
   }
