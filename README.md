@@ -1,4 +1,5 @@
 🚀 Features :
+
 App Management : Create, Update, and Delete apps with real-time synchronization between SQL and OpenSearch.
 
 Advanced Search : Fuzzy search capabilities across app names and descriptions.
