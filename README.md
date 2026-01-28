@@ -16,7 +16,7 @@ Framework : Spring Boot 3.x
 
 Language : Java 17
 
-Primary Database : SQL (PostgreSQL)
+Primary Database : PostgreSQL
 
 Search Engine : OpenSearch 2.11
 
