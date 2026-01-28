@@ -12,7 +12,7 @@ Installation & Reviews: Track app installs and user ratings with automated ratin
 
 🏗️ Technology Stack :
 
-Framework : Spring Boot 3.x
+Framework : Spring Boot 3.2.0
 
 Language : Java 17
 
